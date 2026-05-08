@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>井字遊戲 Prompt 訓練系統</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: "Microsoft JhengHei", Arial, sans-serif;
+    }
+
+    body {
+      margin: 0;
+      background: #f4f6fb;
+      color: #1f2937;
+    }
+
+    header {
+      background: #111827;
+      color: white;
+      padding: 20px 28px;
+    }
+
+    header h1 {
+      margin: 0 0 8px;
+      font-size: 28px;
+    }
+
+    header p {
+      margin: 0;
+      color: #d1d5db;
+    }
+
+    main {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      padding: 20px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 10px 24px rgba(0,0,0,0.08);
+    }
+
+    .card h2 {
+      margin-top: 0;
+      font-size: 20px;
+    }
+
+    .board-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .coordinate-row {
+      display: grid;
+      grid-template-columns: 36px repeat(3, 96px);
+      gap: 8px;
+      align-items: center;
+      color: #6b7280;
+      font-weight: bold;
+    }
+
+    .board-line {
+      display: grid;
+      grid-template-columns: 36px repeat(3, 96px);
+      gap: 8px;
+      align-items: center;
+    }
+
+    .row-label {
+      text-align: center;
+      font-weight: bold;
+      color: #6b7280;
+    }
+
+    .cell {
+      width: 96px;
+      height: 96px;
+      border: 2px solid #d1d5db;
+      border-radius: 14px;
+      background: #f9fafb;
+      font-size: 42px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: 0.15s;
+    }
+
+    .cell:hover {
+      transform: translateY(-2px);
+      background: #eef2ff;
+    }
+
+    .cell.x {
+      color: #2563eb;
+    }
+
+    .cell.o {
+      color: #dc2626;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 230px;
+      border-radius: 12px;
+      border: 1px solid #d1d5db;
+      padding: 12px;
+      font-size: 14px;
+      line-height: 1.6;
+      resize: vertical;
+      background: #f9fafb;
+    }
+
+    button {
+      border: none;
+      border-radius: 12px;
+      padding: 12px 16px;
+      font-size: 15px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .primary {
+      background: #2563eb;
+      color: white;
+    }
+
+    .secondary {
+      background: #e5e7eb;
+      color: #111827;
+    }
+
+    .danger {
+      background: #dc2626;
+      color: white;
+    }
+
+    .button-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+
+    .status {
+      padding: 12px;
+      border-radius: 12px;
+      background: #eef2ff;
+      color: #1e3a8a;
+      font-weight: bold;
+      text-align: center;
+    }
+
+    .log {
+      max-height: 360px;
+      overflow-y: auto;
+      background: #111827;
+      color: #e5e7eb;
+      padding: 14px;
+      border-radius: 12px;
+      font-size: 14px;
+      line-height: 1.6;
+      white-space: pre-wrap;
+    }
+
+    .analysis-box {
+      background: #fff7ed;
+      border: 1px solid #fed7aa;
+      color: #7c2d12;
+      padding: 14px;
+      border-radius: 12px;
+      line-height: 1.6;
+      white-space: pre-wrap;
+    }
+
+    .full {
+      grid-column: 1 / -1;
+    }
+
+    @media (max-width: 900px) {
+      main {
+        grid-template-columns: 1fr;
+      }
+
+      .coordinate-row,
+      .board-line {
+        grid-template-columns: 28px repeat(3, 78px);
+      }
+
+      .cell {
+        width: 78px;
+        height: 78px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>井字遊戲 Prompt 訓練系統</h1>
+    <p>寫下你的 Prompt 策略，打敗電腦。</p>
+  </header>
+
+  <main>
+    <section class="card">
+      <h2>棋盤 Board</h2>
+      <div class="board-wrap" id="board"></div>
+      <div class="status" id="status">目前輪到：X（Prompt AI）</div>
+      <div class="button-row">
+        <button class="primary" onclick="aiMove()"> 下一步</button>
+        <button class="secondary" onclick="opponentAutoMove()">電腦 O 自動下一步</button>
+        <button class="secondary" onclick="runOneGame()">自動跑完一局</button>
+        <button class="danger" onclick="resetGame()">重新開始</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>策略 Prompt (可存檔)</h2>
+      <textarea id="promptBox" placeholder="寫下你的 Prompt 策略：
+
+
+
+"></textarea>
+      <div class="button-row">
+        <button class="primary" onclick="downloadPrompt()">下載 Prompt</button>
+        <button class="secondary" onclick="copyPrompt()">複製 Prompt</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>歷史紀錄 History</h2>
+      <div class="log" id="historyLog">尚無紀錄</div>
+    </section>
+
+    <section class="card">
+      <h2>死亡分析</h2>
+      <div class="analysis-box" id="analysisBox">目前尚未輸贏。當 AI 輸掉、下錯或錯過必勝步時，這裡會顯示原因。</div>
+    </section>
+
+    <section class="card full">
+      <h2>重複實驗統計</h2>
+      <p id="stats">總局數：0｜勝：0｜敗：0｜平手：0｜勝率：0%</p>
+      <div class="button-row">
+        <button class="primary" onclick="runManyGames(20)">自動跑 20 局</button>
+        <button class="secondary" onclick="clearStats()">清除統計</button>
+      </div>
+    </section>
+  </main>
+
+  <script>
+
+    async function getMoveFromOpenAI() {
+  const studentPrompt = document.getElementById('promptBox').value;
+
+  const boardText = board.map(row => row.join(' ')).join('\n');
+
+  const fullPrompt = `
+你正在玩井字遊戲。你是 X。
+
+【棋盤】
+${boardText}
+
+【規則】
+只能下在空格（.）
+
+【策略】
+${studentPrompt}
+
+請嚴格用以下格式回答（不能多說）：
+MOVE row col
+REASON: 原因
+`;
+
+  try {
+    const res = await fetch("http://localhost:3001/api/move", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ prompt: fullPrompt })
+    });
+
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error("後端錯誤:", res.status, errorText);
+      alert("後端錯誤：" + res.status);
+      return null;
+    }
+
+    const data = await res.json();
+
+    console.log("GPT 回傳：", data.text);
+
+    const moveMatch = data.text.match(/MOVE\s+(\d)\s+(\d)/);
+    const reasonMatch = data.text.match(/REASON:\s*(.*)/);
+
+    if (!moveMatch) return null;
+
+    return {
+      r: Number(moveMatch[1]),
+      c: Number(moveMatch[2]),
+      reason: reasonMatch ? reasonMatch[1] : ""
+    };
+
+    } catch (err) {
+    console.error("API 錯誤:", err);
+    alert("API 呼叫失敗，請看 F12 Console 紅字");
+    return null;
+  }
+}
+
+    // =========================
+    // 1. 遊戲狀態 Model
+    // =========================
+    let board = [
+      ['.', '.', '.'],
+      ['.', '.', '.'],
+      ['.', '.', '.']
+    ];
+
+    let currentPlayer = 'X';
+    let gameOver = false;
+    let turn = 1;
+    let history = [];
+
+    let stats = {
+      total: 0,
+      win: 0,
+      lose: 0,
+      draw: 0
+    };
+
+    const winLines = [
+      [[0,0], [0,1], [0,2]],
+      [[1,0], [1,1], [1,2]],
+      [[2,0], [2,1], [2,2]],
+      [[0,0], [1,0], [2,0]],
+      [[0,1], [1,1], [2,1]],
+      [[0,2], [1,2], [2,2]],
+      [[0,0], [1,1], [2,2]],
+      [[0,2], [1,1], [2,0]]
+    ];
+
+    // =========================
+    // 2. 畫面 View
+    // =========================
+    function renderBoard() {
+      const boardEl = document.getElementById('board');
+      boardEl.innerHTML = '';
+
+      const top = document.createElement('div');
+      top.className = 'coordinate-row';
+      top.innerHTML = `<div></div><div>col 0</div><div>col 1</div><div>col 2</div>`;
+      boardEl.appendChild(top);
+
+      for (let r = 0; r < 3; r++) {
+        const line = document.createElement('div');
+        line.className = 'board-line';
+
+        const rowLabel = document.createElement('div');
+        rowLabel.className = 'row-label';
+        rowLabel.textContent = `row ${r}`;
+        line.appendChild(rowLabel);
+
+        for (let c = 0; c < 3; c++) {
+          const cell = document.createElement('button');
+          cell.className = `cell ${board[r][c].toLowerCase()}`;
+          cell.textContent = board[r][c] === '.' ? '' : board[r][c];
+          cell.onclick = () => humanClick(r, c);
+          line.appendChild(cell);
+        }
+
+        boardEl.appendChild(line);
+      }
+
+      updateStatus();
+      renderHistory();
+    }
+
+    function updateStatus() {
+      const status = document.getElementById('status');
+      const winner = getWinner();
+
+      if (winner === 'X') {
+        status.textContent = '結果：X（Prompt AI）獲勝';
+      } else if (winner === 'O') {
+        status.textContent = '結果：O 獲勝，Prompt AI 失敗';
+      } else if (isDraw()) {
+        status.textContent = '結果：平手';
+      } else {
+        status.textContent = `目前輪到：${currentPlayer === 'X' ? 'X（Prompt AI）' : 'O（對手）'}`;
+      }
+    }
+
+    function renderHistory() {
+      const log = document.getElementById('historyLog');
+      log.textContent = history.length ? history.join('\n') : '尚無紀錄';
+    }
+
+    // =========================
+    // 3. 基本規則 Rules
+    // =========================
+    function humanClick(r, c) {
+      if (gameOver || currentPlayer !== 'O') return;
+      if (board[r][c] !== '.') return;
+
+      placeMove(r, c, 'O', 'Human move');
+      afterMoveCheck();
+    }
+
+    function placeMove(r, c, player, reason) {
+      board[r][c] = player;
+      history.push(`Turn ${turn}: ${player} → MOVE ${r} ${c}\nREASON: ${reason}`);
+      turn++;
+    }
+
+    function getWinner() {
+      for (const line of winLines) {
+        const values = line.map(([r, c]) => board[r][c]);
+        if (values.every(v => v === 'X')) return 'X';
+        if (values.every(v => v === 'O')) return 'O';
+      }
+      return null;
+    }
+
+    function isDraw() {
+      return !getWinner() && board.flat().every(v => v !== '.');
+    }
+
+    function afterMoveCheck() {
+      const winner = getWinner();
+
+      if (winner || isDraw()) {
+        gameOver = true;
+        analyzeResult(winner);
+      } else {
+        currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+      }
+
+      renderBoard();
+    }
+
+    // =========================
+    // 4. Prompt AI 決策 Controller
+    // =========================
+    //function aiMove() {
+    async function aiMove() {
+      if (gameOver || currentPlayer !== 'X') return;
+
+      //const decision = promptBasedDecision();
+      const decision = await getMoveFromOpenAI(); //
+
+      if (!decision) {
+        history.push(`Turn ${turn}: X 無法行動`);
+        gameOver = true;
+        renderBoard();
+        return;
+      }
+
+      const { r, c, reason } = decision;
+
+      if (board[r][c] !== '.') {
+        gameOver = true;
+        history.push(`Turn ${turn}: X → MOVE ${r} ${c} ❌ 違規`);
+        document.getElementById('analysisBox').textContent = `死亡原因：Prompt AI 下在已被佔用的位置 (${r},${c})。\n錯誤分類：規則錯誤 / 座標錯誤。`;
+        renderBoard();
+        return;
+      }
+
+      placeMove(r, c, 'X', reason);
+      afterMoveCheck();
+    }
+
+    function promptBasedDecision() {
+      // 1. 如果 X 可以直接贏，立刻下
+      const winMove = findWinningMove('X');
+      if (winMove) {
+        return { ...winMove, reason: '找到 X 的直接獲勝位置，優先獲勝。' };
+      }
+
+      // 2. 如果 O 下一步會贏，必須阻擋
+      const blockMove = findWinningMove('O');
+      if (blockMove) {
+        return { ...blockMove, reason: '發現 O 下一步會連線，必須阻擋。' };
+      }
+
+      // 3. 優先中心
+      if (board[1][1] === '.') {
+        return { r: 1, c: 1, reason: '中心格可增加連線機會。' };
+      }
+
+      // 4. 優先角落
+      const corners = [[0,0], [0,2], [2,0], [2,2]];
+      for (const [r, c] of corners) {
+        if (board[r][c] === '.') {
+          return { r, c, reason: '角落格有較多戰略價值。' };
+        }
+      }
+
+      // 5. 最後選邊
+      const sides = [[0,1], [1,0], [1,2], [2,1]];
+      for (const [r, c] of sides) {
+        if (board[r][c] === '.') {
+          return { r, c, reason: '沒有明確勝負點，選擇剩餘邊格。' };
+        }
+      }
+
+      return null;
+    }
+
+    function findWinningMove(player) {
+      for (const line of winLines) {
+        const values = line.map(([r, c]) => board[r][c]);
+        const playerCount = values.filter(v => v === player).length;
+        const emptyCount = values.filter(v => v === '.').length;
+
+        if (playerCount === 2 && emptyCount === 1) {
+          const emptyIndex = values.indexOf('.');
+          const [r, c] = line[emptyIndex];
+          return { r, c };
+        }
+      }
+      return null;
+    }
+
+    // =========================
+    // 5. 對手策略
+    // =========================
+    function opponentAutoMove() {
+      if (gameOver || currentPlayer !== 'O') return;
+
+      // 對手也使用簡單策略：能贏先贏、能擋先擋，否則隨機
+      let move = findWinningMove('O');
+      let reason = 'O 找到直接獲勝點。';
+
+      if (!move) {
+        move = findWinningMove('X');
+        reason = 'O 發現 X 即將獲勝，因此阻擋。';
+      }
+
+      if (!move) {
+        const emptyCells = getEmptyCells();
+        move = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+        reason = 'O 沒有明確策略，隨機選擇。';
+      }
+
+      placeMove(move.r, move.c, 'O', reason);
+      afterMoveCheck();
+    }
+
+    function getEmptyCells() {
+      const cells = [];
+      for (let r = 0; r < 3; r++) {
+        for (let c = 0; c < 3; c++) {
+          if (board[r][c] === '.') cells.push({ r, c });
+        }
+      }
+      return cells;
+    }
+
+    // =========================
+    // 6. 死亡 / 錯誤分析
+    // =========================
+    function analyzeResult(winner) {
+      const box = document.getElementById('analysisBox');
+
+      if (winner === 'X') {
+        stats.total++;
+        stats.win++;
+        box.textContent = '結果分析：Prompt AI 獲勝。\n原因：策略成功找到獲勝路徑，或成功阻擋對手後形成連線。';
+      } else if (winner === 'O') {
+        stats.total++;
+        stats.lose++;
+        box.textContent = explainLoss();
+      } else if (isDraw()) {
+        stats.total++;
+        stats.draw++;
+        box.textContent = '結果分析：平手。\n原因：雙方都沒有形成三連線，Prompt AI 至少沒有犯致命錯誤。';
+      }
+
+      updateStats();
+    }
+
+    function explainLoss() {
+      for (const line of winLines) {
+        const values = line.map(([r, c]) => board[r][c]);
+        if (values.every(v => v === 'O')) {
+          const positions = line.map(([r, c]) => `(${r},${c})`).join('、');
+          return `死亡原因：O 在 ${positions} 完成三連線。\n錯誤分類：策略失誤 / 未成功防守。\n可觀察問題：Prompt AI 可能沒有及時阻擋對手的雙子威脅，或前面選位讓 O 形成無法同時阻擋的局面。`;
+        }
+      }
+      return 'Prompt AI 失敗，但目前無法判斷明確原因。';
+    }
+
+    // =========================
+    // 7. 重複實驗
+    // =========================
+    function runOneGame() {
+      while (!gameOver) {
+        if (currentPlayer === 'X') aiMove();
+        else opponentAutoMove();
+      }
+    }
+
+    function runManyGames(times) {
+      for (let i = 0; i < times; i++) {
+        resetGame(false);
+        runOneGame();
+      }
+      renderBoard();
+    }
+
+    function updateStats() {
+      const winRate = stats.total === 0 ? 0 : Math.round((stats.win / stats.total) * 100);
+      document.getElementById('stats').textContent = `總局數：${stats.total}｜勝：${stats.win}｜敗：${stats.lose}｜平手：${stats.draw}｜勝率：${winRate}%`;
+    }
+
+    function clearStats() {
+      stats = { total: 0, win: 0, lose: 0, draw: 0 };
+      updateStats();
+    }
+
+    // =========================
+    // 8. Prompt 存檔功能
+    // =========================
+    function downloadPrompt() {
+      const text = document.getElementById('promptBox').value;
+      const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'tic_tac_toe_prompt.txt';
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function copyPrompt() {
+      const text = document.getElementById('promptBox').value;
+      navigator.clipboard.writeText(text);
+      alert('Prompt 已複製');
+    }
+
+    // =========================
+    // 9. 重置
+    // =========================
+    function resetGame(shouldRender = true) {
+      board = [
+        ['.', '.', '.'],
+        ['.', '.', '.'],
+        ['.', '.', '.']
+      ];
+      currentPlayer = 'X';
+      gameOver = false;
+      turn = 1;
+      history = [];
+      document.getElementById('analysisBox').textContent = '目前尚未輸贏。當 AI 輸掉、下錯或錯過必勝步時，這裡會顯示原因。';
+      if (shouldRender) renderBoard();
+    }
+
+    renderBoard();
+    updateStats();
+  </script>
+</body>
+</html>
