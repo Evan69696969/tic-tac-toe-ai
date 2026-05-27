@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>井字遊戲 Prompt 訓練系統 V2.2</title>
+  <title>井字遊戲 Prompt 訓練系統 V2.3</title>
   <style>
     * {
       box-sizing: border-box;
@@ -257,12 +257,34 @@
     async function getMoveFromOpenAI() {
   const studentPrompt = document.getElementById('promptBox').value;
 
-  const boardText = `
-      A   B   C
-  1 | ${board[0][0]} | ${board[0][1]} | ${board[0][2]} |
-  2 | ${board[1][0]} | ${board[1][1]} | ${board[1][2]} |
-  3 | ${board[2][0]} | ${board[2][1]} | ${board[2][2]} |
-  `;
+  // 將棋盤內容轉成人類與 AI 都容易理解的格式
+function getStatusName(val) {
+
+  if (
+    val === "." ||
+    val === "" ||
+    val === null ||
+    val === undefined
+  ) {
+    return "空";
+  }
+
+  return val;
+}
+
+const boardText = `
+A1: ${getStatusName(board[0][0])}
+A2: ${getStatusName(board[1][0])}
+A3: ${getStatusName(board[2][0])}
+
+B1: ${getStatusName(board[0][1])}
+B2: ${getStatusName(board[1][1])}
+B3: ${getStatusName(board[2][1])}
+
+C1: ${getStatusName(board[0][2])}
+C2: ${getStatusName(board[1][2])}
+C3: ${getStatusName(board[2][2])}
+`.trim();
 
  const fullPrompt = `
 你正在玩井字遊戲。你是 X，對手是 O。
@@ -270,8 +292,16 @@
 目前棋盤以 A1、B2、C3 表示位置。
 你只能下在空格，不能下在已經有 X 或 O 的位置。
 
-【目前棋盤】
+棋盤狀態如下：
+
 ${boardText}
+
+請逐格檢查，
+不要假設不存在的棋子。
+
+如果某格顯示「空」，
+才可以下棋。
+
 
 【最高優先級：玩家策略】
 
