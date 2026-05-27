@@ -257,7 +257,12 @@
     async function getMoveFromOpenAI() {
   const studentPrompt = document.getElementById('promptBox').value;
 
-  const boardText = board.map(row => row.join(' ')).join('\n');
+  const boardText = `
+      A   B   C
+  1 | ${board[0][0]} | ${board[0][1]} | ${board[0][2]} |
+  2 | ${board[1][0]} | ${board[1][1]} | ${board[1][2]} |
+  3 | ${board[2][0]} | ${board[2][1]} | ${board[2][2]} |
+  `;
 
  const fullPrompt = `
 你正在玩井字遊戲。你是 X，對手是 O。
@@ -290,6 +295,9 @@ O 是否已經有兩顆連線，
 
 只有在沒有立即威脅時，
 才可以遵守玩家策略。
+
+請逐格檢查棋盤，
+不要幻想不存在的棋子。
 
 【重要規則】
 
