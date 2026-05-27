@@ -583,6 +583,12 @@ REASON: 原因
 
       placeMove(r, c, 'X', reason);
       afterMoveCheck();
+
+      if (!gameOver && currentPlayer === 'O') {
+        setTimeout(() => {
+          opponentAutoMove();
+        }, 500);
+}
     }
 
     function promptBasedDecision() {
