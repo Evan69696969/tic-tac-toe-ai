@@ -308,7 +308,7 @@ O 是否已經有兩顆連線，
 
 請只輸出：
 
-MOVE row col
+MOVE A1
 REASON: 原因
 `;
 
@@ -332,14 +332,26 @@ REASON: 原因
 
     console.log("GPT 回傳：", data.text);
 
-    const moveMatch = data.text.match(/MOVE\s+(\d)\s+(\d)/);
+    const moveMatch = data.text.match(/MOVE\s+([ABC])([123])/);
     const reasonMatch = data.text.match(/REASON:\s*(.*)/);
 
     if (!moveMatch) return null;
 
+    const colConvert = {
+      A: 0,
+      B: 1,
+      C: 2
+    };
+
+    const rowConvert = {
+      1: 0,
+      2: 1,
+      3: 2
+    };
+    
     return {
-      r: Number(moveMatch[1]),
-      c: Number(moveMatch[2]),
+      r: rowConvert[moveMatch[2]],
+      c: colConvert[moveMatch[1]],
       reason: reasonMatch ? reasonMatch[1] : ""
     };
 
@@ -391,7 +403,7 @@ REASON: 原因
 
       const top = document.createElement('div');
       top.className = 'coordinate-row';
-      top.innerHTML = `<div></div><div>col 0</div><div>col 1</div><div>col 2</div>`;
+      top.innerHTML = `<div></div><div>A</div><div>B</div><div>C</div>`;
       boardEl.appendChild(top);
 
       for (let r = 0; r < 3; r++) {
@@ -400,7 +412,7 @@ REASON: 原因
 
         const rowLabel = document.createElement('div');
         rowLabel.className = 'row-label';
-        rowLabel.textContent = `row ${r}`;
+        rowLabel.textContent = `${r + 1}`;
         line.appendChild(rowLabel);
 
         for (let c = 0; c < 3; c++) {
@@ -451,7 +463,12 @@ REASON: 原因
 
     function placeMove(r, c, player, reason) {
       board[r][c] = player;
-      history.push(`Turn ${turn}: ${player} → MOVE ${r} ${c}\nREASON: ${reason}`);
+      const cols = ["A", "B", "C"];
+      const rows = ["1", "2", "3"];
+
+      history.push(
+      `Turn ${turn}: ${player} → MOVE ${cols[c]}${rows[r]}\nREASON: ${reason}`
+      );      
       turn++;
     }
 
