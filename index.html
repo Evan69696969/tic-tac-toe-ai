@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>井字遊戲 Prompt 訓練系統 V2.1</title>
+  <title>井字遊戲 Prompt 訓練系統 V2.2</title>
   <style>
     * {
       box-sizing: border-box;
@@ -266,6 +266,9 @@
 
  const fullPrompt = `
 你正在玩井字遊戲。你是 X，對手是 O。
+
+目前棋盤以 A1、B2、C3 表示位置。
+你只能下在空格，不能下在已經有 X 或 O 的位置。
 
 【目前棋盤】
 ${boardText}
@@ -535,7 +538,13 @@ REASON: 原因
       if (board[r][c] !== '.') {
         gameOver = true;
         history.push(`Turn ${turn}: X → MOVE ${r} ${c} ❌ 違規`);
-        document.getElementById('analysisBox').textContent = `死亡原因：Prompt AI 下在已被佔用的位置 (${r},${c})。\n錯誤分類：規則錯誤 / 座標錯誤。`;
+        const cols = ["A", "B", "C"];
+        const rows = ["1", "2", "3"];
+
+        document.getElementById('analysisBox').textContent =
+        `死亡原因：Prompt AI 下在已被佔用的位置 ${cols[c]}${rows[r]}。
+        錯誤分類：規則錯誤 / 座標錯誤。`;
+
         renderBoard();
         return;
       }
