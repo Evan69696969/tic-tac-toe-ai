@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>井字遊戲 Prompt 訓練系統 V2.0</title>
+  <title>井字遊戲 Prompt 訓練系統 V2.1</title>
   <style>
     * {
       box-sizing: border-box;
@@ -308,16 +308,23 @@ O 是否已經有兩顆連線，
 
 【自我檢查】
 
-在輸出 MOVE 前，請確認：
+在決定 MOVE 前，你必須先做以下檢查：
 
-1. 這步是否符合玩家策略？
-2. 是否有違反玩家 Prompt？
-3. 如果違反，請重新思考。
+1. 列出目前所有 X 的位置
+2. 列出目前所有 O 的位置
+3. 列出目前所有空格
+4. 檢查 O 是否真的有兩顆連線
+5. 如果你說某格有 O，必須確認棋盤上那格真的是 O
+6. 不可以把 X 當成 O
+7. 不可以幻想棋盤上不存在的棋子
 
-請只輸出：
+請只輸出以下格式：
 
-MOVE A1
-REASON: 原因!
+STATE_X: A1, B2
+STATE_O: C2
+EMPTY: A2, A3, B1, B3, C1, C3
+MOVE B1
+REASON: 原因
 `;
 
   try {
